@@ -23,7 +23,7 @@ _Clonar_
 
 ```
 git clone git@github.com:alexvelasquez/DEA-ciudadano.git
-cd  DEA-Gestion
+cd  DEA-ciudadano
 ```
 
 _Instalar Dependecias_
