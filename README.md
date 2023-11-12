@@ -29,8 +29,15 @@ cd  DEA-ciudadano
 _Instalar Dependecias_
 
 ```
-npm install
+yarn install
 ```
+
+_Crear un env.local con el siguiente contenido_
+
+```
+VITE_API_ENDPOINT= http://localhost:8000 (asegurarse que la api local este corriendo en este puerto)
+```
+
 
 _Iniciar Servidor Local (puerto:8100 por defecto)_
 
