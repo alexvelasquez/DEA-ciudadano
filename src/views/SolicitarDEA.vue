@@ -75,7 +75,7 @@
             :espacios="espacios"
             @ubicar-espacio="irUbicacionMapa($event)"
             @solicitar="solicitarEspacio($event)"
-            @cancelar="estado = 'seleccion'"
+            @cancelar="store.setEstado('seleccion')"
           />
         </IonModal>
       </div>
@@ -143,14 +143,14 @@ const router = useRouter();
 const map = ref(null);
 const modal = ref(null);
 const zoom = ref<number>(15);
-const posicionActual = ref<L.LatLng>(null);
+const posicionActual = ref(null);
 
 /**
  * refs relacionadas al espacio obligado
  */
 let solicitud = reactive(null);
-const espacios = ref<Array<Object>>([]);
-const estados = {
+const espacios = ref<Array<any>>([]);
+const estados: { [key: string]: any } = {
   seleccion: {
     height: {
       map: "65vh",
@@ -260,7 +260,7 @@ const calcularRuta = (to: L.LatLng): void => {
 
     control.on("routesfound", function (e) {
       var routes = e.routes;
-      var time = routes[0].summary.totalTime; // Tiempo estimado en segundos      
+      var time = routes[0].summary.totalTime; // Tiempo estimado en segundos
       if (!store.llegada) {
         store.llegada = moment(new Date()).add(time, "seconds");
       } else if (moment(store.llegada).isSameOrBefore(moment(new Date()))) {
