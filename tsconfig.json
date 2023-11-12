@@ -5,6 +5,7 @@
     "module": "ESNext",
     "moduleResolution": "Node",
     "strict": true,
+    "strictNullChecks": false,
     "jsx": "preserve",
     "resolveJsonModule": true,
     "isolatedModules": true,
@@ -14,8 +15,13 @@
     "noEmit": true,
     "paths": {
       "@/*": ["./src/*"]
-    }
+    },
+    "types": [
+      "@types/leaflet",
+      "@types/leaflet-routing-machine"
+    ]
   },
   "include": ["src/**/*.ts", "src/**/*.d.ts", "src/**/*.tsx", "src/**/*.vue"],
   "references": [{ "path": "./tsconfig.node.json" }]
+  
 }
