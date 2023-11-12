@@ -15,7 +15,6 @@
           <h2>{{ espacio.nombre }}</h2>
           <p>a {{ parseInt(parseFloat(espacio.distancia)) }} km</p>
         </ion-label>
-        <ion-note slot="end">{{ i + 1 }} min</ion-note>
       </ion-item>
     </IonList>
   </IonContent>

@@ -15,51 +15,60 @@
                 </ion-card-subtitle>
               </ion-card-header>
             </ion-card>
-            <ion-card button color="primary">
-              <ion-card-header>
-                <ion-card-title>
-                  <ion-icon aria-hidden="true" :icon="volumeHighOutline" /> RCP:
-                  AUDIO AYUDA</ion-card-title
-                >
-                <ion-card-subtitle
-                  >Audio basico de ayuda para aplicar RCP
-                </ion-card-subtitle>
-              </ion-card-header>
-            </ion-card>
             <ion-card
-              color="warning"
               button
-              @click="router.push('/solicitar-dea')"
+              color="primary"
+              @click="audioAccion[estadoAudio].accion"
             >
               <ion-card-header>
-                <ion-card-title>
-                  <ion-icon aria-hidden="true" :icon="locationOutline" />
-                  SOLICITAR DEA</ion-card-title
+                <ion-card-title
+                  style="
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                  "
                 >
-                <ion-card-subtitle
-                  >Espacios cardioasistidos con DEAS disponibles.
+                  <div>
+                    <ion-icon
+                      aria-hidden="true"
+                      style=""
+                      :icon="volumeHighOutline"
+                    />
+                    <ion-label> RCP: AUDIO AYUDA</ion-label>
+                  </div>
+                  <ion-badge color="warning">
+                    {{ audioAccion[estadoAudio].label }}
+                  </ion-badge>
+                </ion-card-title>
+                <!-- <ion-card-subtitle
+                  >Audio basico de ayuda para aplicar RCP
+                </ion-card-subtitle> -->
+                <ion-card-subtitle>
+                  <span> Audio de ayuda para aplicar RCP </span>
                 </ion-card-subtitle>
               </ion-card-header>
             </ion-card>
-
-            <!-- <div id="temporizador">
-              {{ horas }}:{{ minutos < 10 ? `0${minutos}` : minutos }}:{{
-                segundos < 10 ? "0" : ""
-              }}{{ segundos }}
-            </div> -->
           </ion-col>
         </ion-row>
       </ion-grid>
     </ion-content>
+
+    <audio v-show="false" ref="audio" id="audio" controls>
+      <source type="audio/wav" src="/audios/rcp.mp3" />
+    </audio>
   </ion-page>
 </template>
 
 <script setup lang="ts">
-import { ref } from "vue";
-import { useRouter } from "vue-router";
-import { socket } from "@/socket";
+import { ref, onBeforeUpdate, onBeforeMount } from "vue";
+import { useRouter, onBeforeRouteLeave } from "vue-router";
+
+import { useAppStore } from "@/stores/app";
+const store = useAppStore();
+
 import {
   IonPage,
+  IonBadge,
   IonHeader,
   IonToolbar,
   IonTitle,
@@ -81,30 +90,39 @@ import {
   volumeHighOutline,
   locationOutline,
   pulseOutline,
+  playOutline,
+  stopOutline,
+  pauseOutline,
 } from "ionicons/icons";
-import { onMounted } from "vue";
-
 const router = useRouter();
-const minutos = ref(1);
-const segundos = ref(0);
-const horas = ref(0);
-let temporizadorInterval;
-onMounted(() => {
-  // iniciarTemporizador();
+const audio = ref(null);
+onBeforeRouteLeave((to, from, next) => {
+  store.handleModal(true);
+  next();
 });
 
-const iniciarTemporizador = () => {
-  if (segundos || minutos || horas) {
-    temporizadorInterval = setInterval(() => {
-      if (segundos.value > 0) {
-        segundos.value--;
-      } else if (minutos.value > 0) {
-        minutos.value--;
-        segundos.value = 59;
-      }
-    }, 1000);
-  }
+const estadoAudio = ref("stop");
+const audioAccion = {
+  stop: {
+    label: "reproducir",
+    icon: playOutline,
+    accion: () => {
+      estadoAudio.value = "reproducir";
+      audio.value.play();
+    },
+  },
+  reproducir: {
+    label: "reproduciendo",
+    icon: pauseOutline,
+    accion: () => {
+      estadoAudio.value = "stop";
+      audio.value.pause();
+      audio.value.currentTime = 0;
+    },
+  },
 };
 
-
+onBeforeMount(() => {
+  store.handleModal(false);
+});
 </script>

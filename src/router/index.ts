@@ -1,16 +1,34 @@
 import { createRouter, createWebHistory } from '@ionic/vue-router';
 import { RouteRecordRaw } from 'vue-router';
-import HomePage from '../views/Home.vue'
-import SolicitarDEA from '../views/SolicitarDEA.vue'
+import IndexPage from '../views/Index.vue'
+
+
+
 
 const routes: Array<RouteRecordRaw> = [
   {
-    path: '',
-    component: HomePage,
+    path: '/',
+    redirect: '/home',
   },
   {
-    path: '/solicitar-dea',
-    component: SolicitarDEA,
+    path: '/',
+    component: IndexPage,
+    children: [
+      {
+        path: '',
+        redirect: '/home',
+      },
+      {
+        path: 'home',
+        component: () => import('../views/Home.vue'),
+      },
+
+      {
+        path: 'solicitar-dea',
+        component: () => import('../views/SolicitarDEA.vue')
+      },
+
+    ]
   }
 ]
 

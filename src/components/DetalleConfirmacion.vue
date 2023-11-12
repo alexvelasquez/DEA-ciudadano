@@ -27,17 +27,28 @@
     >
       DEA EN CAMINO
     </div>
-    <div
-      style="
-        display: flex;
-        width: 100%;
-        justify-content: center;
-        font-size: 40px;
-        font-weight: bold;
-        margin-top: 30px;
-      "
-    >
-      5 min
+    <div style="margin-top: 30px" v-if="store.llegada">
+      <div
+        style="
+          display: flex;
+          width: 100%;
+          justify-content: center;
+          font-size: 40px;
+          font-weight: bold;
+        "
+      >
+        {{ moment(store.llegada).format("HH:mm") }}
+      </div>
+      <div
+        style="
+          display: flex;
+          width: 100%;
+          justify-content: center;
+          font-size: 10px;
+        "
+      >
+        HORA DE LLEGADA
+      </div>
     </div>
   </ion-content>
   <ion-footer>
@@ -47,12 +58,10 @@
   </ion-footer>
 </template>
 <script lang="ts" setup>
-import {
-  IonContent,
-  IonThumbnail,
-  IonFooter,
-  IonButton,
-} from "@ionic/vue";
+import { IonContent, IonThumbnail, IonFooter, IonButton } from "@ionic/vue";
+import moment from "moment";
+import { useAppStore } from "@/stores/app";
+const store = useAppStore();
 </script>
 <style scoped>
 ion-thumbnail {

@@ -1,8 +1,13 @@
 <template>
   <ion-page>
-    <ion-content>
+    <ion-content :fullscreen="true">
+      <ion-refresher slot="fixed" @ionRefresh="handleRefresh($event)">
+        <ion-refresher-content></ion-refresher-content>
+      </ion-refresher>
       <div>
-        <div :style="`height: ${estados[estado].height.map}; width: auto`">
+        <div
+          :style="`height: ${estados[store.estado].height.map}; width: auto`"
+        >
           <l-map
             v-if="espacios.length"
             ref="map"
@@ -28,9 +33,18 @@
               <l-icon icon-url="/images/location.svg" :icon-size="[40, 40]" />
             </l-marker>
 
+            <!-- <l-control position="topleft">
+              <ion-fab-button size="small" @click="dismiss">
+                <ion-icon :icon="arrowBackOutline"></ion-icon>
+              </ion-fab-button>
+              <ion-tab-button tab="home" href="/home">
+                <ion-icon :icon="arrowBackOutline" />
+                <ion-label>Emergencias</ion-label>
+              </ion-tab-button>
+            </l-control> -->
             <l-control position="bottomright">
               <div @click="irUbicacionMapa(posicionActual)">
-                <ion-fab-button>
+                <ion-fab-button size="small">
                   <ion-icon :icon="locateSharp"></ion-icon>
                 </ion-fab-button>
               </div>
@@ -45,20 +59,19 @@
         </div>
         <IonModal
           ref="modal"
-          :style="`--height: ${estados[estado].height.modal}`"
+          :style="`--height: ${estados[store.estado].height.modal};`"
           handle-behavior="cycle"
-          :is-open="true"
-          :animated="false"
-          :can-dismiss="false"
-          :backdrop-dismiss="false"
+          :is-open="store.modal"
+          :animated="true"
+          :can-dismiss="true"
+          :backdrop-dismiss="true"
           :initial-breakpoint="1"
           :breakpoints="[0, 1]"
-          :keep-contents-mounted="true"
           :backdrop-breakpoint="1"
-          :show-backdrop="false"
+          :show-backdrop="true"
         >
           <component
-            :is="estados[estado].component"
+            :is="estados[store.estado].component"
             :espacios="espacios"
             @ubicar-espacio="irUbicacionMapa($event)"
             @solicitar="solicitarEspacio($event)"
@@ -71,11 +84,27 @@
 </template>
 
 <script lang="ts" setup>
-import { ref, onMounted } from "vue";
+import { useRouter, onBeforeRouteLeave, onBeforeRouteUpdate } from "vue-router";
+
+import { useAppStore } from "@/stores/app";
+const store = useAppStore();
+
+import {
+  ref,
+  reactive,
+  onMounted,
+  onActivated,
+  onUnmounted,
+  onBeforeMount,
+  onBeforeUpdate,
+  watch,
+} from "vue";
+
+import Home from "../views/Home.vue";
 import EspaciosDisponibles from "../components/EspaciosDisponibles.vue";
 import EsperaResponsable from "../components/EsperaResponsable.vue";
 import DetalleConfirmacion from "../components/DetalleConfirmacion.vue";
-import L from "leaflet";
+import L, { LatLng } from "leaflet";
 import "leaflet/dist/leaflet.css";
 import "leaflet-routing-machine";
 import "leaflet-routing-machine/dist/leaflet-routing-machine.css";
@@ -93,54 +122,73 @@ import {
   IonIcon,
   IonModal,
   IonFabButton,
+  IonBackButton,
+  IonToolbar,
+  IonButtons,
+  IonHeader,
+  IonRefresher,
+  IonRefresherContent,
 } from "@ionic/vue";
 
 import { Geolocation } from "@capacitor/geolocation";
-import { locateSharp } from "ionicons/icons";
+import { locateSharp, arrowBackOutline } from "ionicons/icons";
 
 import http from "../plugins/axios";
+import moment from "moment";
+const router = useRouter();
 
 /**
  * refs relacionadas al mapa
  */
 const map = ref(null);
+const modal = ref(null);
 const zoom = ref<number>(15);
 const posicionActual = ref<L.LatLng>(null);
 
 /**
  * refs relacionadas al espacio obligado
  */
+let solicitud = reactive(null);
 const espacios = ref<Array<Object>>([]);
-const estado = ref<string>("seleccion");
 const estados = {
   seleccion: {
     height: {
-      map: "60vh",
-      modal: "40%",
+      map: "65vh",
+      modal: "30%",
     },
-    component: EspaciosDisponibles
+    component: EspaciosDisponibles,
   },
   pendiente: {
     height: {
-      map: "80vh",
+      map: "75vh",
       modal: "20%",
     },
-    component: EsperaResponsable
+    component: EsperaResponsable,
   },
   confirmado: {
     height: {
-      map: "60vh",
+      map: "55vh",
       modal: "40%",
     },
-    component: DetalleConfirmacion
+    component: DetalleConfirmacion,
   },
 };
 
+onBeforeRouteLeave((to, from, next) => {
+  store.handleModal(false);
+  next();
+});
+
 onMounted(async () => {
+  store.handleModal(true);
+  await fetchEspacios();
+});
+
+const fetchEspacios = async () => {
   const {
     coords: { latitude, longitude },
   } = await Geolocation.getCurrentPosition();
-  posicionActual.value = L.latLng(-34.90298173281178, -57.97249948009739);
+  posicionActual.value = L.latLng(latitude, longitude);
 
   const {
     data: { data },
@@ -150,8 +198,17 @@ onMounted(async () => {
       lon: longitude,
     },
   });
-  espacios.value = data.slice(0, 3);
-});
+  espacios.value = data;
+};
+const handleRefresh = async (event: any) => {
+  if (store.estado == "seleccion") {
+    await fetchEspacios();
+  }
+  if (store.estado == "confirmado") {
+    calcularRuta(store.ubicacionEspacioSolicitado);
+  }
+  event.target.complete();
+};
 
 /** Redireccion en el mapa dada una posicion.
  * @name irUbicacionMapa
@@ -170,19 +227,20 @@ const irUbicacionMapa = (position: Array<number>): void => {
  * @returns {Promise<void>}
  */
 const solicitarEspacio = async (espacio: any): Promise<void> => {
-  const { latitud, longitud } = espacio;
+  store.setEstado("pendiente");
+  const { latitud, longitud, id } = espacio;
   const {
-    data: { data: solicitud },
-  } = await http.post(`/publico/solicitar-dea/${espacio.id}`, {
+    data: { solictud: solicitud_dea },
+  } = await http.post(`/publico/solicitar-dea/${id}`, {
     latitud: latitud,
     longitud: longitud,
   });
-
+  solicitud = solicitud_dea;
   const socket = new WebSocket(`ws://localhost:8000/ws/${solicitud.id}`);
-  estado.value = "pendiente";
   socket.onmessage = async (event) => {
-    estado.value = "confirmado";
-    calcularRuta(new L.LatLng(latitud, longitud));
+    store.setEstado("confirmado");
+    store.ubicacionEspacioSolicitado = new L.LatLng(latitud, longitud);
+    calcularRuta(store.ubicacionEspacioSolicitado);
     const { data } = await http.post(`/close-room/${solicitud.id}`);
   };
 };
@@ -195,14 +253,33 @@ const solicitarEspacio = async (espacio: any): Promise<void> => {
  */
 const calcularRuta = (to: L.LatLng): void => {
   if (map.value.leafletObject) {
-    L.Routing.control({
+    var control = L.Routing.control({
       waypoints: [posicionActual.value, to],
       routeWhileDragging: true,
     }).addTo(map.value.leafletObject);
 
+    control.on("routesfound", function (e) {
+      var routes = e.routes;
+      var time = routes[0].summary.totalTime; // Tiempo estimado en segundos      
+      if (!store.llegada) {
+        store.llegada = moment(new Date()).add(time, "seconds");
+      } else if (moment(store.llegada).isSameOrBefore(moment(new Date()))) {
+        store.llegada = null;
+        store.setEstado("seleccion");
+      }
+    });
   }
 };
 
+/** Cancela la solicitud .
+ * @name calcularRuta
+ * @function
+ * @returns {void}
+ */
+const cancelarSolicitud = async (): Promise<void> => {
+  const { data } = await http.post(`/close-room/${solicitud.id}`);
+  store.setEstado("seleccion");
+};
 </script>
 
 <style scoped>
@@ -225,5 +302,8 @@ ion-button {
 }
 .leaflet-routing-container.leaflet-bar.leaflet-routing-collapsible.leaflet-control {
   display: none;
+}
+.modal-sheet {
+  bottom: 8% !important;
 }
 </style>
