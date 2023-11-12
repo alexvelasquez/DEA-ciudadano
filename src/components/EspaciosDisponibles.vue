@@ -13,7 +13,7 @@
         </ion-avatar>
         <ion-label>
           <h2>{{ espacio.nombre }}</h2>
-          <p>a {{ parseInt(parseFloat(espacio.distancia)) }} km</p>
+          <p>a {{ parseInt(parseFloat(espacio.distancia).toString()) }} km</p>
         </ion-label>
       </ion-item>
     </IonList>
@@ -41,7 +41,7 @@ import {
 
 import { ref, defineEmits } from "vue";
 const props = defineProps(["espacios"]);
-const emit = defineEmits(["ubicar-espacio"]);
+const emit = defineEmits(["ubicar-espacio","solicitar"]);
 const activo = ref<number>(0);
 
 /** Activa el espacio y lo posiciona en el mapa

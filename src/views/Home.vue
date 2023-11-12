@@ -18,7 +18,7 @@
             <ion-card
               button
               color="primary"
-              @click="audioAccion[estadoAudio].accion"
+              @click="audioAccion[estadoAudio].accion()"
             >
               <ion-card-header>
                 <ion-card-title
@@ -101,8 +101,8 @@ onBeforeRouteLeave((to, from, next) => {
   next();
 });
 
-const estadoAudio = ref("stop");
-const audioAccion = {
+const estadoAudio = ref<string>("stop");
+const audioAccion: { [key: string]: any } = {
   stop: {
     label: "reproducir",
     icon: playOutline,
